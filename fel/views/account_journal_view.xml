@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+
+        <record model='ir.ui.view' id='account_journal_form_view_inherit2'>
+                <field name='name'>account.journal.form.inherit2</field>
+                <field name='model'>account.journal</field>
+                <field name='inherit_id' ref='account.view_account_journal_form'/>
+                <!--<field name='type'>form</field>-->
+                <field name='arch' type='xml'>
+                        <field name="code" position="before">
+                                <field name="is_eface"/>
+                        </field>
+                </field>
+        </record>
+
+</openerp>

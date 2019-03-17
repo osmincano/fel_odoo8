@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+         <record id="api_configuration_form_view" model="ir.ui.view">
+            <field name="name">api.data.configuration.form</field>
+            <field name="model">api.data.configuration</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="user"/>
+                                <field name="key_firma"/>
+                                <field name="url_firma"/>
+                                <field name="code_est"/>
+                            </group>
+                            <group>
+                                <field name="key_certificado"/>
+                                <field name="url_certificado"/>
+                                <field name="url_anulacion"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="api_configuration_tree_view" model="ir.ui.view">
+            <field name="name">api.data.configuration.tree</field>
+            <field name="model">api.data.configuration</field>
+            <field name="arch" type="xml">
+                <tree string="API Configuration">
+                    <field name="user"/>
+                    <field name="code_est"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_api_configuration" model="ir.actions.act_window">
+            <field name="name">API Configuration</field>
+            <field name="res_model">api.data.configuration</field>
+            <field name='view_type'>form</field>
+            <field name='view_mode'>tree,form</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+                    Click to create.
+                </p>
+            </field>
+        </record>
+
+        <menuitem
+            action="action_api_configuration"
+            id="payment_api_menu"
+            parent="account.menu_finance_configuration"
+            sequence="44" />
+   </data>
+</openerp>

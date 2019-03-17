@@ -12,7 +12,7 @@
     'data': [
         'views/api_view.xml',
         'views/account_journal_view.xml',
-        'views/account_invoice_view.xml',
+        # views/account_invoice_view.xml',
         'views/product_view.xml',
     ],
     'demo': [],
