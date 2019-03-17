@@ -13,6 +13,3 @@ class AccountInvoice(osv.osv):
         "cae": fields.text("CAE", readonly=True, states={'draft': [('readonly', False)]}),
         "letras": fields.text("Total Letras", readonly=True, states={'draft': [('readonly', False)]}),
     }
-
-
-AccountInvoice()
