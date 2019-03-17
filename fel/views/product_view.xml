@@ -6,12 +6,10 @@
             <field name="model">product.template</field>
             <field name="inherit_id" ref="product.product_template_form_view"/>
             <field name="arch" type="xml">
-                <group name="invoicing" position="inside">
-                    <group string="Codigo Escenario y Gravable">
+                <field name="categ_id" position="after">
                         <field name="CodeEscenario" on_change="onchange_escenario(CodeEscenario, context)"/>
                         <field name="CodeGravable"/>
-                    </group>
-                </group>
+                </field>
             </field>
         </record>
 

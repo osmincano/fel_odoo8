@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record model="ir.ui.view" id="account_invoice_form_view_inherit123">
+                <field name="name">account.invoice.form.inherit123</field>
+                <field name="model">account.invoice</field>
+                <field name="inherit_id" ref="account.invoice_form"/>
+                <field name="arch" type="xml">
+                        <field name="fiscal_position_id" position="after">
+                                <field name="uuid"/>
+                                <field name="serie"/>
+                                <field name="numero_dte"/>
+                                <field name="dte_fecha"/>
+                                <field name="letras"/>
+                        </field>
+                </field>
+        </record>
+    </data>
+</openerp>

@@ -33,10 +33,6 @@ class ProductTemplate(osv.osv):
         'CodeEscenario': '0',
     }
 
-
-class ProductProduct(osv.osv):
-    _inherit = "product.product"
-
     def onchange_escenario(self, cr, uid, ids, CodeEscenario, context=None):
         r = {'value': {}}
         if int(CodeEscenario) > 0:
