@@ -1,17 +1,20 @@
+
 # -*- encoding: UTF-8 -*-
 
 from openerp.osv import fields, osv
-import xml.etree.cElementTree as ET
+from openerp import api
+#import xml.etree.cElementTree as ET
+#from xml.etree import ElementTree as ET
 from datetime import datetime, timedelta
-from lxml import etree
+from lxml import etree as ET
 import datetime as dt
 import dateutil.parser
 from dateutil.tz import gettz
 from openerp.tools.translate import _
 from dateutil import parser
-from odoo.addons.fel.models import numero_a_texto
-from odoo.addons.fel.models import credit_note
-from odoo.addons.fel.models import invoice_cancel
+from .numero_a_texto import Numero_a_Texto
+from .credit_note import set_data_for_invoice_credit, send_data_api_credit
+from .invoice_cancel import set_data_for_invoice_cancel, send_data_api_cancel
 import json
 from openerp.exceptions import except_orm, Warning, RedirectWarning
 import logging
@@ -32,8 +35,9 @@ class AccountInvoice(osv.osv):
             return super(AccountInvoice, self).invoice_validate()
         res = super(AccountInvoice, self).invoice_validate()
         if self.type == "out_invoice":
+            print "self:", self
             xml_data = self.set_data_for_invoice()
-            self.letras = str(numero_a_texto.Numero_a_Texto(self.amount_total))
+            self.letras = str(Numero_a_Texto(self.amount_total))
             uuid, serie, numero_dte, dte_fecha = self.send_data_api(xml_data)
             message = _("Facturacion Electronica: Serie %s  Numero %s") % (serie, numero_dte)
             self.message_post(body=message)
@@ -48,10 +52,10 @@ class AccountInvoice(osv.osv):
             self.dte_fecha = myTime
 
         if self.type == "out_refund" and self.refund_invoice_id:
-            xml_data = credit_note.set_data_for_invoice_credit(self)
+            xml_data = set_data_for_invoice_credit(self)
             #print ("xml credit note:",xml_data)
-            self.letras = str(numero_a_texto.Numero_a_Texto(self.amount_total))
-            uuid, serie, numero_dte, dte_fecha = credit_note.send_data_api_credit(self, xml_data)
+            self.letras = str(Numero_a_Texto(self.amount_total))
+            uuid, serie, numero_dte, dte_fecha = send_data_api_credit(self, xml_data)
             message = _("Nota de Credito: Serie %s  Numero %s") % (serie, numero_dte)
             self.message_post(body=message)
             self.uuid = uuid
@@ -73,8 +77,8 @@ class AccountInvoice(osv.osv):
             return super(AccountInvoice, self).action_cancel()
         res = super(AccountInvoice, self).action_cancel()
         if self.type == "out_invoice":
-            xml_data = invoice_cancel.set_data_for_invoice_cancel(self)
-            uuid, serie, numero_dte, dte_fecha = invoice_cancel.send_data_api_cancel(self, xml_data)
+            xml_data = set_data_for_invoice_cancel(self)
+            uuid, serie, numero_dte, dte_fecha = send_data_api_cancel(self, xml_data)
             message = _("Factura Cancelada: Serie %s  Numero %s") % (serie, numero_dte)
             self.message_post(body=message)
             self.uuid = uuid
@@ -88,8 +92,8 @@ class AccountInvoice(osv.osv):
             self.dte_fecha = myTime
 
         if self.type == "out_refund" and self.uuid:
-            xml_data = invoice_cancel.set_data_for_invoice_cancel(self)
-            uuid, serie, numero_dte, dte_fecha = invoice_cancel.send_data_api_cancel(self, xml_data)
+            xml_data = set_data_for_invoice_cancel(self)
+            uuid, serie, numero_dte, dte_fecha = send_data_api_cancel(self, xml_data)
             message = _("Nota de Credito Cancelada: Serie %s  Numero %s") % (serie, numero_dte)
             self.message_post(body=message)
             self.uuid = uuid
@@ -113,7 +117,6 @@ class AccountInvoice(osv.osv):
         version = "0.4"
         ns = "{xsi}"
         DTE = "dte"
-
         root = ET.Element("{" + xmlns + "}GTDocumento", Version="0.4",
                           attrib={"{" + xsi + "}schemaLocation": schemaLocation})
         doc = ET.SubElement(root, "{" + xmlns + "}SAT", ClaseDocumento="dte")
@@ -150,9 +153,9 @@ class AccountInvoice(osv.osv):
         ET.SubElement(direc, "{" + xmlns + "}Pais").text = "GT"
 
         # Frases
-        invoice_line = self.invoice_line_ids
+        invoice_line = self.invoice_line
         fra = ET.SubElement(dem, "{" + xmlns + "}Frases")
-        ET.SubElement(fra, "{" + xmlns + "}Frase", TipoFrase="1", CodigoEscenario="2")
+        ET.SubElement(fra, "{" + xmlns + "}Frase", TipoFrase="1", CodigoEscenario="1")
         lista = []
         for line_id in invoice_line:
             if int(line_id.product_id.CodeEscenario) > 0:
@@ -174,18 +177,18 @@ class AccountInvoice(osv.osv):
             if line.product_id.type == 'service':
                 p_type = 1
                 BoS = "S"
-            for tax in line.invoice_line_tax_ids:
+            for tax in line.invoice_line_tax_id:
                 if tax.price_include:
                     tax_in_ex = 0
 
             # Item
             item = ET.SubElement(items, "{" + xmlns + "}Item",
                                  BienOServicio=BoS, NumeroLinea=str(cnt))
-            if line.invoice_line_tax_ids:
+            if line.invoice_line_tax_id:
                 tax = "IVA"
             else:
-                raise osv.except_osv(_("Las líneas de Factura deben de llevar impuesto."))
-            for imp in line.invoice_line_tax_ids:
+                raise Warning(_("Las lineas de Factura deben de llevar impuesto."))
+            for imp in line.invoice_line_tax_id:
                 if imp.price_include == True:
                     price_unit = line.price_unit
                     price_unit = round(price_unit, 4)
@@ -210,14 +213,19 @@ class AccountInvoice(osv.osv):
 
             impuestos = ET.SubElement(item, "{" + xmlns + "}Impuestos")
             impuesto = ET.SubElement(impuestos, "{" + xmlns + "}Impuesto")
-            price_tax = line.price_total - line.price_subtotal
+            price = price_unit * (1 - (line.discount or 0.0) / 100.0)
+            taxes = line.invoice_line_tax_id.compute_all(
+                price, line.quantity, product=line.product_id, partner=line.invoice_id.partner_id)
+            print "taxes:", taxes
+            price_tax = taxes['total_included'] - taxes['total']
             ET.SubElement(impuesto, "{" + xmlns + "}NombreCorto").text = tax
             ET.SubElement(
                 impuesto, "{" + xmlns + "}CodigoUnidadGravable").text = line.product_id.CodeGravable
             ET.SubElement(
                 impuesto, "{" + xmlns + "}MontoGravable").text = str(round(line.price_subtotal, 4))
             ET.SubElement(impuesto, "{" + xmlns + "}MontoImpuesto").text = str(round(price_tax, 4))
-            ET.SubElement(item, "{" + xmlns + "}Total").text = str(round(line.price_total, 4))
+            ET.SubElement(
+                item, "{" + xmlns + "}Total").text = str(round(taxes['total_included'], 4))
         # Totales
         totales = ET.SubElement(dem, "{" + xmlns + "}Totales")
         timpuestos = ET.SubElement(totales, "{" + xmlns + "}TotalImpuestos")
@@ -237,8 +245,10 @@ class AccountInvoice(osv.osv):
         formato2 = "%d-%m-%Y"
         date_due = date_due.strftime(formato2)
         ET.SubElement(ade, "FechaVencimiento").text = date_due
-
+        print "ENCO:", ET
+        print type(root)
         cont = ET.tostring(root, encoding="UTF-8", method='xml')
+        print "CBDE"
         buscar = "ns0"
         rmpl = "dte"
         cont = cont.decode('utf_8')
@@ -292,8 +302,8 @@ class AccountInvoice(osv.osv):
         #resulta_codigo = tree_res.find('ERROR').attrib['Codigo']
         #resulta_descripcion = tree_res.find('ERROR').text
         if cantidad_errores > 0:
-            raise osv.except_osv(_("You cannot validate an invoice\n Error No:%s\n %s." %
-                                   (cantidad_errores, descripcion_errores)))
+            raise Warning(_("You cannot validate an invoice\n Error No:%s\n %s." %
+                            (cantidad_errores, descripcion_errores)))
             # message = _("You cannot validate an invoice\n Error No:%s\n %s.") % (
             #    cantidad_errores, descripcion_errores)
             # self.message_post(body=message)
