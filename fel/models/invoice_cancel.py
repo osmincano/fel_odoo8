@@ -55,7 +55,7 @@ def set_data_for_invoice_cancel(self):
     fecha_emision = dt.datetime.now(gettz("America/Guatemala")
                                     ).__format__('%Y-%m-%dT%H:%M:%S.%f')[:-3]
     dge = ET.SubElement(dte, "{" + xmlns + "}DatosGenerales", FechaEmisionDocumentoAnular=date_invoice, FechaHoraAnulacion=fecha_emision,
-                        ID="DatosAnulacion", IDReceptor=vat, MotivoAnulacion="Anulación", NITEmisor=self.company_id.vat, NumeroDocumentoAAnular=str(self.uuid))
+                        ID="DatosAnulacion", IDReceptor=vat, MotivoAnulacion="Anulacion", NITEmisor=self.company_id.vat, NumeroDocumentoAAnular=str(self.uuid))
 
     cont = ET.tostring(root, encoding="UTF-8", method='xml')
     buscar = "ns0"

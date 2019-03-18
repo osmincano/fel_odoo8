@@ -51,7 +51,11 @@ class AccountInvoice(osv.osv):
             myTime = myTime.strftime(formato2)
             self.dte_fecha = myTime
 
-        if self.type == "out_refund" and self.refund_invoice_id:
+        if self.type == "out_refund":
+            inv = self.env['account.invoice'].search([['number', '=', self.origin]])
+            if inv:
+                if not inv.uuid:
+                    return super(AccountInvoice, self).invoice_validate()
             xml_data = set_data_for_invoice_credit(self)
             #print ("xml credit note:",xml_data)
             self.letras = str(Numero_a_Texto(self.amount_total))
